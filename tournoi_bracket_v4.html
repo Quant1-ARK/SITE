@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tournoi Bracket</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg:     #f2f4f8;
+  --white:  #ffffff;
+  --border: #dde1ea;
+  --bdk:    #9099b0;
+  --text:   #1a1d2e;
+  --muted:  #6b7280;
+  --acc:    #1a3a8f;
+  --acc2:   #c0392b;
+  --winbg:  #e8f0ff;
+  --wintx:  #1a3a8f;
+  --gold:   #e0a800;
+  --goldlt: #fffbea;
+  --hdr:    #1a1d2e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+/* ═══ TOOLBAR ═══ */
+.toolbar {
+  background: var(--hdr); padding: 12px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  position: sticky; top: 0; z-index: 300;
+}
+.tbt { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 4px; color: #fff; }
+.tbt span { color: var(--gold); }
+.eb { display: flex; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 3px;
+  font-family: 'DM Sans', sans-serif; font-size: .8rem; font-weight: 600;
+  cursor: pointer; border: none; transition: all .15s;
+}
+.btn svg { width: 13px; height: 13px; }
+.bpdf { background: var(--acc2); color: #fff; } .bpdf:hover { background: #a93226; }
+.bpng { background: var(--gold); color: #1a1d2e; } .bpng:hover { background: #c89400; }
+
+/* ═══ TOURN HEADER ═══ */
+#page { background: var(--bg); }
+.tourn-hdr {
+  background: var(--white); text-align: center;
+  padding: 22px 24px 14px; border-bottom: 2px solid var(--border);
+}
+.tourn-hdr input {
+  background: none; border: none; outline: none;
+  font-family: inherit; text-align: center; color: inherit; cursor: text;
+}
+.t-name input {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem;
+  letter-spacing: 4px; color: var(--text); width: 100%;
+}
+.t-sub { margin-top: 4px; display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
+.t-sub input { font-size: .85rem; color: var(--muted); }
+.t-sub input:focus { color: var(--acc); border-bottom: 1px dashed var(--acc); }
+.t-sep { color: var(--border); line-height: 1.7; }
+
+/* ═══ TABS ═══ */
+.tabs-bar {
+  display: flex; background: var(--white);
+  border-bottom: 2px solid var(--border);
+  position: sticky; top: 52px; z-index: 200;
+}
+.tab-btn {
+  flex: 1; height: 52px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 3px;
+  color: var(--muted); cursor: pointer; border: none; background: none;
+  border-bottom: 3px solid transparent; transition: all .2s;
+}
+.tab-btn:hover { color: var(--acc); }
+.tab-btn.active { color: var(--acc); border-bottom-color: var(--acc); background: var(--bg); }
+.tab-badge {
+  font-family: 'DM Sans', sans-serif; font-size: .68rem; font-weight: 700;
+  background: var(--border); color: var(--muted);
+  padding: 2px 8px; border-radius: 12px; letter-spacing: .5px;
+}
+.tab-btn.active .tab-badge { background: rgba(26,58,143,.12); color: var(--acc); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ═══════════════════════════════════════════
+   POULES TAB
+═══════════════════════════════════════════ */
+.poules-wrap { padding: 28px 28px 48px; }
+.poule-block { margin-bottom: 44px; }
+
+.poule-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 4px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px; color: #fff;
+  padding: 10px 16px; border-radius: 4px;
+}
+.poule-title small {
+  font-size: .65rem; opacity: .75; letter-spacing: 1px;
+  font-family: 'DM Sans', sans-serif; font-weight: 400;
+}
+
+.rank-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+.rank-table th {
+  background: #f0f2f7; font-size: .67rem; font-weight: 700; color: var(--muted);
+  letter-spacing: .5px; padding: 5px 10px;
+  border: 1px solid var(--border); text-align: center;
+}
+.rank-table th:nth-child(2) { text-align: left; }
+.rank-table td {
+  padding: 5px 10px; border: 1px solid var(--border);
+  background: var(--white); vertical-align: middle; text-align: center;
+}
+.rank-table td:nth-child(2) { text-align: left; }
+.rank-table tr:hover td { background: #f8f9fd; }
+.frk {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .67rem; font-weight: 800;
+}
+.r1{background:var(--gold);color:#1a1d2e;} .r2{background:#9e9e9e;color:#fff;}
+.r3{background:#7c5e2a;color:#fff;}        .r4{background:#ddd;color:#888;}
+.fn {
+  background: none; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif; font-size: .82rem;
+  font-weight: 500; color: var(--text); width: 100%;
+}
+.fn:focus { color: var(--acc); }
+.fn::placeholder { color: #b5bac8; font-style: italic; }
+.si {
+  background: #f8f9fd; border: 1px solid var(--border); border-radius: 2px;
+  width: 26px; text-align: center; font-size: .75rem; font-weight: 600;
+  font-family: 'DM Mono', monospace; padding: 2px 0; outline: none; color: var(--text);
+}
+.si:focus { border-color: var(--acc); }
+.spts {
+  display: inline-block; background: var(--acc); color: #fff; border-radius: 3px;
+  font-size: .75rem; font-weight: 700; font-family: 'DM Mono', monospace;
+  padding: 2px 7px; min-width: 30px;
+}
+.qb { font-size: .62rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+.qy  { background: rgba(26,58,143,.12); color: var(--acc); }
+.qbye{ background: rgba(224,168,0,.2);  color: #7a5500; }
+.qn  { background: #f0f2f7; color: var(--muted); }
+
+/* Fight bubbles */
+.fights-section-title {
+  font-family: 'Bebas Neue', sans-serif; font-size: .8rem; letter-spacing: 3px;
+  color: var(--muted); margin-bottom: 12px;
+}
+.fights-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+@media(max-width:700px){ .fights-grid { grid-template-columns: 1fr 1fr; } }
+
+.fight-bubble {
+  background: var(--white); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 12px 14px 10px; box-shadow: 0 2px 6px rgba(0,0,0,.06);
+  transition: box-shadow .15s, transform .15s; position: relative; overflow: hidden;
+}
+.fight-bubble:hover { box-shadow: 0 4px 14px rgba(0,0,0,.12); transform: translateY(-1px); }
+.fight-num-badge {
+  font-family: 'Bebas Neue', sans-serif; font-size: .7rem; letter-spacing: 2px;
+  color: var(--muted); margin-bottom: 8px;
+}
+.fight-fighters { display: flex; align-items: center; gap: 6px; }
+.fight-name {
+  flex: 1; font-size: .82rem; font-weight: 600; color: var(--text);
+  text-align: center; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fight-name.winner { color: var(--acc); }
+
+/* Score spinner (poule fights) */
+.score-spin {
+  display: flex; flex-direction: column; align-items: center;
+  position: relative; flex-shrink: 0;
+}
+.score-display {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f0f2f7; border: 1.5px solid var(--border); border-radius: 6px;
+  font-size: 1rem; font-weight: 700; font-family: 'DM Mono', monospace;
+  color: var(--text); user-select: none; cursor: default;
+  position: relative; transition: background .15s, border-color .15s;
+}
+.score-display.win-sc { background: var(--acc); color: #fff; border-color: var(--acc); }
+.score-btns {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  opacity: 0; transition: opacity .15s; border-radius: 6px; overflow: hidden;
+}
+.score-spin:hover .score-btns { opacity: 1; }
+.sbtn {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: rgba(26,58,143,.75); color: #fff; cursor: pointer;
+  font-size: .7rem; font-weight: 900; user-select: none;
+  transition: background .1s; border: none; font-family: 'DM Mono', monospace;
+  line-height: 1;
+}
+.sbtn:first-child { border-radius: 6px 6px 0 0; }
+.sbtn:last-child  { border-radius: 0 0 6px 6px; }
+.sbtn:hover { background: rgba(26,58,143,.95); }
+.sbtn.down { background: rgba(150,20,20,.75); }
+.sbtn.down:hover { background: rgba(150,20,20,.95); }
+
+.fight-vs {
+  font-family: 'Bebas Neue', sans-serif; font-size: .75rem; letter-spacing: 2px;
+  color: var(--acc2); flex-shrink: 0;
+}
+.fight-result {
+  text-align: center; margin-top: 7px; font-size: .72rem; font-weight: 600;
+  color: var(--muted); min-height: 16px;
+}
+.fight-result.has-winner { color: var(--acc); }
+
+/* ═══════════════════════════════════════════
+   BRACKET TAB
+═══════════════════════════════════════════ */
+.bracket-outer { padding: 28px 28px 48px; }
+
+#rbar {
+  display: flex; background: #e4e6ef;
+  border: 1px solid var(--border); border-radius: 4px 4px 0 0; overflow: hidden;
+  font-family: 'Bebas Neue', sans-serif; font-size: .8rem;
+  letter-spacing: 2px; color: var(--muted);
+}
+#rbar .rb { flex: 1; text-align: center; padding: 9px 4px; border-right: 1px solid var(--border); }
+#rbar .rb:last-child { border-right: none; }
+#rbar .rsf { color: var(--acc); font-size: .9rem; }
+#rbar .rfin { color: var(--acc2); font-size: .9rem; }
+
+.bscroll {
+  overflow-x: auto; background: var(--white);
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 4px 4px; padding: 48px 60px 56px;
+}
+.bwrap { position: relative; margin: 0 auto; }
+#csvg { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+
+/* ── Match card (big) ── */
+.mc {
+  position: absolute; background: var(--white);
+  border: 2px solid var(--bdk); overflow: visible;
+  box-shadow: 0 2px 12px rgba(0,0,0,.1); border-radius: 6px;
+}
+.mclbl {
+  font-family: 'DM Mono', monospace; font-size: .72rem; color: var(--muted);
+  padding: 5px 12px; background: #f0f2f7; border-bottom: 1px solid var(--border);
+  text-align: center; letter-spacing: 2px; text-transform: uppercase;
+  border-radius: 4px 4px 0 0;
+}
+.mr {
+  display: flex; align-items: center; padding: 10px 12px; gap: 10px;
+  border-bottom: 1px solid var(--border); min-height: 52px;
+}
+.mr:last-of-type { border-bottom: none; }
+.mr.win { background: var(--winbg); }
+.mr.win .mn { color: var(--wintx); font-weight: 700; }
+.mn {
+  flex: 1; font-size: .92rem; font-weight: 500;
+  background: none; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif; color: var(--text);
+  cursor: text; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mn::placeholder { color: #b5bac8; font-style: italic; }
+.mn:focus { color: var(--acc); }
+
+/* Score spinner for bracket */
+.br-spin {
+  position: relative; flex-shrink: 0;
+}
+.br-score {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: #f0f2f7; border: 2px solid var(--border); border-radius: 8px;
+  font-size: 1.2rem; font-weight: 700; font-family: 'DM Mono', monospace;
+  color: var(--text); user-select: none; cursor: default;
+  transition: background .15s, border-color .15s;
+}
+.mr.win .br-score { background: var(--acc); color: #fff; border-color: var(--acc); }
+.br-btns {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  opacity: 0; transition: opacity .15s; border-radius: 8px; overflow: hidden;
+}
+.br-spin:hover .br-btns { opacity: 1; }
+.brbtn {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: rgba(26,58,143,.78); color: #fff; cursor: pointer;
+  font-size: .8rem; font-weight: 900; user-select: none;
+  transition: background .1s; border: none; font-family: 'DM Mono', monospace;
+  line-height: 1;
+}
+.brbtn:first-child { border-radius: 8px 8px 0 0; }
+.brbtn:last-child  { border-radius: 0 0 8px 8px; }
+.brbtn:hover { background: rgba(26,58,143,.97); }
+.brbtn.down { background: rgba(150,20,20,.78); }
+.brbtn.down:hover { background: rgba(150,20,20,.97); }
+
+/* bye card */
+.byemc {
+  position: absolute; background: var(--goldlt);
+  border: 2px dashed var(--gold); border-radius: 6px;
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+}
+.byetag {
+  font-family: 'Bebas Neue', sans-serif; font-size: .75rem; letter-spacing: 2px;
+  color: #7a5500; background: #fef3cd; padding: 3px 8px;
+  border: 1px solid var(--gold); border-radius: 2px; flex-shrink: 0;
+}
+.byeinp {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif; font-size: .88rem;
+  font-weight: 600; color: #7a5c00;
+}
+.byeinp::placeholder { color: #c9a84c; font-style: italic; }
+
+/* champion */
+.champ-box {
+  text-align: center; margin-top: 28px; background: var(--white);
+  border: 1px solid var(--border); border-radius: 4px; padding: 22px 24px 26px;
+}
+.champ-lbl {
+  font-family: 'Bebas Neue', sans-serif; font-size: .78rem;
+  letter-spacing: 5px; color: var(--muted); margin-bottom: 6px;
+}
+.champ-inp {
+  font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem;
+  letter-spacing: 5px; color: var(--acc); background: none; border: none;
+  outline: none; text-align: center; display: block; width: 100%;
+}
+.champ-inp::placeholder { color: #c0c5d8; }
+
+.foot {
+  background: #e4e6ef; border-top: 1px solid var(--border); padding: 9px 28px;
+  font-size: .68rem; color: var(--muted); text-align: center;
+  font-family: 'DM Mono', monospace;
+}
+
+#ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 999; align-items: center; justify-content: center; flex-direction: column; gap: 13px; }
+#ov.on { display: flex; }
+.spin { width: 36px; height: 36px; border: 3px solid #555; border-top-color: var(--gold);
+  border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ovm { color: #fff; font-size: .88rem; }
+</style>
+</head>
+<body>
+
+<div id="ov"><div class="spin"></div><div class="ovm" id="ovm">...</div></div>
+
+<div class="toolbar">
+  <div class="tbt">TOURNOI <span>BRACKET</span></div>
+  <div class="eb">
+    <button class="btn bpng" onclick="xpng()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>PNG
+    </button>
+    <button class="btn bpdf" onclick="xpdf()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF
+    </button>
+  </div>
+</div>
+
+<div class="tourn-hdr" id="tourn-hdr">
+  <div class="t-name"><input type="text" id="tname" value="Nom du Tournoi"></div>
+  <div class="t-sub">
+    <input type="text" id="tcat" value="Categorie" placeholder="Categorie">
+    <span class="t-sep">·</span>
+    <input type="text" id="tloc" value="Lieu" placeholder="Lieu">
+    <span class="t-sep">·</span>
+    <input type="text" id="tdate" value="Date" placeholder="Date">
+  </div>
+</div>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('poules',this)">
+    Phase de Poules <span class="tab-badge">5 poules · 6 combats chacune</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('bracket',this)">
+    Phase Finale <span class="tab-badge">QF · SF · Finale</span>
+  </button>
+</div>
+
+<div id="page">
+  <div class="tab-panel active" id="tab-poules">
+    <div class="poules-wrap" id="poules-wrap"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-bracket">
+    <div class="bracket-outer">
+      <div id="rbar"></div>
+      <div class="bscroll">
+        <div class="bwrap" id="bwrap"><svg id="csvg"></svg></div>
+      </div>
+      <div class="champ-box">
+        <div class="champ-lbl">Champion du Tournoi</div>
+        <input class="champ-inp" id="champ" placeholder="---">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  Survolez les scores pour les modifier avec +/− &nbsp;·&nbsp; Noms modifiables au clic &nbsp;·&nbsp; PNG / PDF pour partager
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const PCOLS  = ['#1565C0','#6A1B9A','#00695C','#AD1457','#E65100'];
+const PNAMES = ['Poule A','Poule B','Poule C','Poule D','Poule E'];
+const PAIRS  = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+
+const poules = Array.from({length:5}, (_,pi) => ({
+  fighters: Array.from({length:4}, (_,fi) => ({
+    name:`Combattant ${fi+1}`, v:0, d:0, pts:0, diff:0
+  })),
+  fights: PAIRS.map(([a,b]) => ({a,b,sa:0,sb:0}))
+}));
+
+const bk = {
+  qf1: {label:'Quart de Finale 1', f1:{name:'1er Poule A',sc:0}, f2:{name:'1er Poule B',sc:0}},
+  qf2: {label:'Quart de Finale 2', f1:{name:'1er Poule C',sc:0}, f2:{name:'1er Poule D',sc:0}},
+  df:  {label:'Demi-Finale',       f1:{name:'',sc:0},            f2:{name:'',sc:0}},
+  fin: {label:'Finale',            f1:{name:'',sc:0},            f2:{name:'',sc:0}},
+  bye: {name:'1er Poule E'},
+  q1:  {name:'1er Poule A'},
+  q2:  {name:'1er Poule B'},
+  q3:  {name:'1er Poule C'},
+  q4:  {name:'1er Poule D'},
+  q5:  {name:'1er Poule E'},
+};
+
+// ═══════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════
+function calcStats(pi) {
+  const p = poules[pi];
+  p.fighters.forEach(f => { f.v=0; f.d=0; f.pts=0; f.diff=0; });
+  p.fights.forEach(({a,b,sa,sb}) => {
+    if      (sa>sb) { p.fighters[a].v++; p.fighters[b].d++; }
+    else if (sb>sa) { p.fighters[b].v++; p.fighters[a].d++; }
+    p.fighters[a].diff += sa-sb;
+    p.fighters[b].diff += sb-sa;
+  });
+  p.fighters.forEach(f => f.pts = f.v*3);
+}
+
+function ranked(pi) {
+  calcStats(pi);
+  return [...poules[pi].fighters.map((f,i)=>({...f,idx:i}))]
+    .sort((a,b) => b.pts-a.pts || b.diff-a.diff || b.v-a.v);
+}
+
+function recalcVND(pi) {
+  const p = poules[pi];
+  p.fighters.forEach(f => { f.v=0; f.d=0; });
+  p.fights.forEach(({a,b,sa,sb}) => {
+    if      (sa>sb) { p.fighters[a].v++; p.fighters[b].d++; }
+    else if (sb>sa) { p.fighters[b].v++; p.fighters[a].d++; }
+  });
+}
+
+function syncNames() {
+  for (let pi=0; pi<5; pi++) {
+    const n = ranked(pi)[0]?.name || '';
+    if      (pi===0) { bk.q1.name = n; bk.qf1.f1.name = n; }
+    else if (pi===1) { bk.q2.name = n; bk.qf1.f2.name = n; }
+    else if (pi===2) { bk.q3.name = n; bk.qf2.f1.name = n; }
+    else if (pi===3) { bk.q4.name = n; bk.qf2.f2.name = n; }
+    else             { bk.bye.name = n; bk.df.f2.name = n; bk.q5.name = n; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SCORE SPINNER BUILDER (poule fights)
+// ═══════════════════════════════════════════════════════
+function makeScoreSpin(getVal, setVal, isWin, dispId) {
+  const wrap = document.createElement('div');
+  wrap.className = 'score-spin';
+
+  const disp = document.createElement('div');
+  disp.className = 'score-display' + (isWin ? ' win-sc' : '');
+  if (dispId) disp.id = dispId;
+
+  // Text node for score value — kept as first child
+  const txt = document.createTextNode(getVal());
+  disp.appendChild(txt);
+
+  const btns = document.createElement('div');
+  btns.className = 'score-btns';
+
+  const up = document.createElement('button');
+  up.className = 'sbtn';
+  up.textContent = '+';
+  up.addEventListener('mousedown', e => { e.preventDefault(); setVal(Math.min(2,getVal()+1)); });
+
+  const dn = document.createElement('button');
+  dn.className = 'sbtn down';
+  dn.textContent = '−';
+  dn.addEventListener('mousedown', e => { e.preventDefault(); setVal(Math.max(0,getVal()-1)); });
+
+  btns.appendChild(up);
+  btns.appendChild(dn);
+  disp.appendChild(btns);
+  wrap.appendChild(disp);
+  return { el: wrap, disp };
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER POULES — construit une seule fois, updatePoules patch le DOM
+// ═══════════════════════════════════════════════════════
+function renderPoules() {
+  const wrap = document.getElementById('poules-wrap');
+  wrap.innerHTML = '';
+
+  poules.forEach((p, pi) => {
+    const col = PCOLS[pi];
+    const rnk = ranked(pi);
+    const block = document.createElement('div');
+    block.className = 'poule-block';
+    block.id = `block${pi}`;
+
+    // Header
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'poule-title';
+    titleDiv.style.background = col;
+    titleDiv.innerHTML = `${PNAMES[pi]}<small>4 combattants &nbsp;·&nbsp; 6 combats &nbsp;·&nbsp; 3 combats / combattant</small>`;
+    block.appendChild(titleDiv);
+
+    // Ranking table
+    const tbl = document.createElement('table');
+    tbl.className = 'rank-table';
+    tbl.id = `tbl${pi}`;
+    const thead = tbl.createTHead();
+    thead.innerHTML = `<tr>
+      <th>#</th><th style="min-width:120px">Combattant</th>
+      <th title="Victoires">V</th>
+      <th title="Defaites">D</th><th>Pts</th><th>Statut</th>
+    </tr>`;
+    const tbody = tbl.createTBody();
+    block.appendChild(tbl);
+
+    // Build fighter rows — fighters in ORIGINAL order (not ranked) so indices stay stable
+    poules[pi].fighters.forEach((f, fi) => {
+      const tr = document.createElement('tr');
+      tr.id = `tr${pi}-${fi}`;
+      tr.innerHTML = `
+        <td class="td-rank"><div class="frk r1">1</div></td>
+        <td><input class="fn" value="${f.name}" placeholder="Combattant" data-pi="${pi}" data-fi="${fi}"></td>
+        <td><span class="sv">${f.v}</span></td>
+        <td><span class="sd">${f.d}</span></td>
+        <td><span class="spts">${f.pts}</span></td>
+        <td><span class="qb qn"></span></td>`;
+      tbody.appendChild(tr);
+
+      tr.querySelector('.fn').addEventListener('input', e => {
+        poules[pi].fighters[fi].name = e.target.value;
+        updatePoules(pi);
+        syncNames(); renderBracket();
+      });
+      tr.querySelector('.fn').addEventListener('blur', () => {
+        updatePoules(pi);
+      });
+    });
+
+    // Fights section
+    const ftitle = document.createElement('div');
+    ftitle.className = 'fights-section-title';
+    ftitle.textContent = 'Combats';
+    block.appendChild(ftitle);
+
+    const fgrid = document.createElement('div');
+    fgrid.className = 'fights-grid';
+    fgrid.id = `fgrid${pi}`;
+    block.appendChild(fgrid);
+
+    PAIRS.forEach(([a, b], fi) => {
+      const ft = p.fights[fi];
+      const na = p.fighters[a].name;
+      const nb = p.fighters[b].name;
+      const isWinA = ft.sa > ft.sb;
+      const isWinB = ft.sb > ft.sa;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'fight-bubble';
+      bubble.id = `bubble${pi}-${fi}`;
+      fgrid.appendChild(bubble);
+
+      // color bar
+      const bar = document.createElement('div');
+      bar.style.cssText = `position:absolute;top:0;left:0;right:0;height:3px;background:${col};border-radius:12px 12px 0 0;`;
+      bubble.appendChild(bar);
+
+      const numBadge = document.createElement('div');
+      numBadge.className = 'fight-num-badge';
+      numBadge.textContent = `COMBAT ${fi+1}`;
+      bubble.appendChild(numBadge);
+
+      const fighters = document.createElement('div');
+      fighters.className = 'fight-fighters';
+      fighters.id = `ff${pi}-${fi}`;
+      bubble.appendChild(fighters);
+
+      const nameA = document.createElement('span');
+      nameA.className = 'fight-name' + (isWinA ? ' winner' : '');
+      nameA.id = `fna${pi}-${fi}`;
+      nameA.textContent = na;
+      fighters.appendChild(nameA);
+
+      const spinA = makeScoreSpin(
+        () => poules[pi].fights[fi].sa,
+        val => { poules[pi].fights[fi].sa = val; recalcVND(pi); updatePoules(pi); syncNames(); renderBracket(); },
+        isWinA,
+        `dA${pi}-${fi}`
+      );
+      spinA.el.id = `spinA${pi}-${fi}`;
+      fighters.appendChild(spinA.el);
+
+      const vs = document.createElement('span');
+      vs.className = 'fight-vs'; vs.textContent = 'VS';
+      fighters.appendChild(vs);
+
+      const spinB = makeScoreSpin(
+        () => poules[pi].fights[fi].sb,
+        val => { poules[pi].fights[fi].sb = val; recalcVND(pi); updatePoules(pi); syncNames(); renderBracket(); },
+        isWinB,
+        `dB${pi}-${fi}`
+      );
+      spinB.el.id = `spinB${pi}-${fi}`;
+      fighters.appendChild(spinB.el);
+
+      const nameB = document.createElement('span');
+      nameB.className = 'fight-name' + (isWinB ? ' winner' : '');
+      nameB.id = `fnb${pi}-${fi}`;
+      nameB.textContent = nb;
+      nameB.style.textAlign = 'right';
+      fighters.appendChild(nameB);
+
+      const result = document.createElement('div');
+      result.className = 'fight-result' + (isWinA||isWinB ? ' has-winner' : '');
+      result.id = `fres${pi}-${fi}`;
+      if (isWinA)      result.textContent = `${na} gagne`;
+      else if (isWinB) result.textContent = `${nb} gagne`;
+      bubble.appendChild(result);
+    });
+
+    wrap.appendChild(block);
+  });
+
+  // Initial patch of rank/stats display
+  poules.forEach((_, pi) => updatePoules(pi));
+}
+
+// Patch DOM in-place: stats, bubble names & results — JAMAIS de déplacement DOM
+function updatePoules(pi) {
+  calcStats(pi);
+  const p = poules[pi];
+
+  // Calcule le rang de chaque fighter par son idx
+  const rnkOrder = ranked(pi); // tableau trié
+  const rankOf = {}; // idx → rank (0-based)
+  rnkOrder.forEach((f, rank) => { rankOf[f.idx] = rank; });
+
+  // Met à jour chaque ligne par son idx (pas de déplacement)
+  p.fighters.forEach((f, fi) => {
+    const tr = document.getElementById(`tr${pi}-${fi}`);
+    if (!tr) return;
+    const rank = rankOf[fi];
+
+    const rankDiv = tr.querySelector('.td-rank div');
+    if (rankDiv) { rankDiv.className = `frk r${rank+1}`; rankDiv.textContent = rank+1; }
+
+    const sv   = tr.querySelector('.sv');
+    const sd   = tr.querySelector('.sd');
+    const spts = tr.querySelector('.spts');
+    if (sv)   sv.textContent   = f.v;
+    if (sd)   sd.textContent   = f.d;
+    if (spts) spts.textContent = f.pts;
+
+    const qb = tr.querySelector('.qb');
+    if (qb) {
+      const isBye  = pi===4 && rank===0;
+      const isQual = rank===0;
+      qb.className  = 'qb ' + (isBye ? 'qbye' : isQual ? 'qy' : 'qn');
+      qb.textContent = isBye ? 'BYE' : isQual ? 'Qual.' : '';
+    }
+  });
+
+  // Réordonne les lignes seulement si aucun champ de nom de cette poule n'est actif
+  const activeEl = document.activeElement;
+  const nameFocused = activeEl && activeEl.classList.contains('fn') &&
+                      activeEl.dataset.pi === String(pi);
+
+  if (!nameFocused) {
+    const tbody = document.querySelector(`#tbl${pi} tbody`);
+    if (tbody) {
+      rnkOrder.forEach(f => {
+        const tr = document.getElementById(`tr${pi}-${f.idx}`);
+        if (tr) tbody.appendChild(tr);
+      });
+    }
+  }
+  PAIRS.forEach(([a, b], fi) => {
+    const ft = p.fights[fi];
+    const na = p.fighters[a].name;
+    const nb = p.fighters[b].name;
+    const isWinA = ft.sa > ft.sb;
+    const isWinB = ft.sb > ft.sa;
+
+    const nameAEl = document.getElementById(`fna${pi}-${fi}`);
+    const nameBEl = document.getElementById(`fnb${pi}-${fi}`);
+    const resEl   = document.getElementById(`fres${pi}-${fi}`);
+
+    if (nameAEl) { nameAEl.textContent = na; nameAEl.className = 'fight-name' + (isWinA ? ' winner' : ''); }
+    if (nameBEl) { nameBEl.textContent = nb; nameBEl.className = 'fight-name' + (isWinB ? ' winner' : ''); }
+
+    // Score display — update text node (first child) and class
+    const dA = document.getElementById(`dA${pi}-${fi}`);
+    const dB = document.getElementById(`dB${pi}-${fi}`);
+    if (dA) { dA.firstChild.textContent = ft.sa; dA.className = 'score-display' + (isWinA ? ' win-sc' : ''); }
+    if (dB) { dB.firstChild.textContent = ft.sb; dB.className = 'score-display' + (isWinB ? ' win-sc' : ''); }
+
+    if (resEl) {
+      if (isWinA)      { resEl.textContent = `${na} gagne`; resEl.className = 'fight-result has-winner'; }
+      else if (isWinB) { resEl.textContent = `${nb} gagne`; resEl.className = 'fight-result has-winner'; }
+      else             { resEl.textContent = ''; resEl.className = 'fight-result'; }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// BRACKET SCORE SPINNER
+// ═══════════════════════════════════════════════════════
+function makeBrSpin(getVal, setVal, isWin) {
+  const wrap = document.createElement('div');
+  wrap.className = 'br-spin';
+
+  const disp = document.createElement('div');
+  disp.className = 'br-score';
+  disp.textContent = getVal();
+
+  const btns = document.createElement('div');
+  btns.className = 'br-btns';
+
+  const up = document.createElement('button');
+  up.className = 'brbtn';
+  up.textContent = '+';
+  up.addEventListener('mousedown', e => { e.preventDefault(); setVal(Math.min(2,getVal()+1)); });
+
+  const dn = document.createElement('button');
+  dn.className = 'brbtn down';
+  dn.textContent = '−';
+  dn.addEventListener('mousedown', e => { e.preventDefault(); setVal(Math.max(0, getVal()-1)); });
+
+  btns.appendChild(up);
+  btns.appendChild(dn);
+  disp.appendChild(btns);
+  wrap.appendChild(disp);
+  return wrap;
+}
+
+// ═══════════════════════════════════════════════════════
+// BRACKET LAYOUT — Pyramide asymétrique (bas → haut)
+// ═══════════════════════════════════════════════════════
+// Structure :
+//
+//        FINALE
+//       /      \
+//     QF1       DF
+//    /   \     /   \
+//   A     B  QF2    E
+//            / \
+//           C   D
+//
+// Layout :
+//   Bas  : QF1 (gauche)  |  QF2 (droite, aligné avec QF1)
+//   Milieu droite : DF
+//   Haut centre : FINALE
+
+const CW    = 260;
+const CH    = 112;
+const HGAP  = 80;
+const VGAP  = 70;
+
+// Symétrie : FINALE au centre, QF1 à gauche, DF à droite au même niveau
+const X_FIN  = CW + HGAP;                   // Finale — centre
+const X_QF1  = 0;                            // QF1 — gauche
+const X_DF   = (CW + HGAP) * 2;             // DF   — droite (symétrique de QF1)
+const X_QF2  = X_DF - CW / 2;               // QF2  — légèrement à gauche de DF
+
+// Qualifiés : Q1 et Q2 sous QF1, Q3/Q4/Q5 répartis à droite
+const Q_W    = 120;                          // largeur fixe d'une carte qualifié
+const Q_GAP  = 30;                           // écart entre bulles qualifiés
+
+// Gauche : Q1 Q2 sous QF1
+const X_Q1   = X_QF1 + (CW - (Q_W * 2 + Q_GAP)) / 2;
+const X_Q2   = X_Q1 + Q_W + Q_GAP;
+
+// Droite : Q3 Q4 Q5 répartis avec écart égal, centrés sous la zone QF2+DF
+const X_ZONE_R_START = X_QF2;
+const X_ZONE_R_END   = X_DF + CW;
+const X_ZONE_R_W     = X_ZONE_R_END - X_ZONE_R_START;
+const Q_GAP_R        = (X_ZONE_R_W - Q_W * 3) / 2;
+const X_Q3   = X_ZONE_R_START;
+const X_Q4   = X_Q3 + Q_W + Q_GAP_R;
+const X_Q5   = X_Q4 + Q_W + Q_GAP_R;
+
+const TOT_W  = X_ZONE_R_END + 40;
+
+const Y_FIN  = 30;
+const Y_DF   = Y_FIN + CH + VGAP;           // DF — niveau intermédiaire
+const Y_QF   = Y_DF  + CH + VGAP * 1.5;    // QF — en dessous de DF
+const Y_Q    = Y_QF  + CH + VGAP;           // Qualifiés — niveau bas
+
+const TOT_H  = Y_Q + CH + 60;
+
+function w2(f1, f2) {
+  if (f1.sc > f2.sc) return 'f1';
+  if (f2.sc > f1.sc) return 'f2';
+  return null;
+}
+function wn(f1, f2) { const w=w2(f1,f2); return w==='f1'?f1.name:w==='f2'?f2.name:''; }
+
+function renderBracket() {
+  // Q1/Q2 → QF1
+  bk.qf1.f1.name = bk.q1.name || '1er Poule A';
+  bk.qf1.f2.name = bk.q2.name || '1er Poule B';
+
+  // Q3/Q4 → QF2
+  bk.qf2.f1.name = bk.q3.name || '1er Poule C';
+  bk.qf2.f2.name = bk.q4.name || '1er Poule D';
+
+  // QF1 winner → FIN f1
+  const wqf1 = wn(bk.qf1.f1, bk.qf1.f2);
+  bk.fin.f1.name = wqf1 || (bk.qf1.f1.name&&bk.qf1.f2.name ? 'Vainqueur QF1' : bk.qf1.f1.name||'');
+
+  // QF2 winner → DF f1
+  const wqf2 = wn(bk.qf2.f1, bk.qf2.f2);
+  bk.df.f1.name = wqf2 || (bk.qf2.f1.name&&bk.qf2.f2.name ? 'Vainqueur QF2' : bk.qf2.f1.name||'');
+  // 5e qualifié → DF f2
+  bk.df.f2.name = bk.bye.name || '5e Qualifie';
+
+  // DF winner → FIN f2
+  const wdf = wn(bk.df.f1, bk.df.f2);
+  bk.fin.f2.name = wdf || (bk.df.f1.name&&bk.df.f2.name ? 'Vainqueur DF' : '');
+
+  const wfin = wn(bk.fin.f1, bk.fin.f2);
+  if (wfin) document.getElementById('champ').value = wfin;
+
+  const wrap = document.getElementById('bwrap');
+  wrap.querySelectorAll('.mc,.byemc,.qcard').forEach(e => e.remove());
+  wrap.style.width  = TOT_W + 'px';
+  wrap.style.height = TOT_H + 'px';
+
+  const svg = document.getElementById('csvg');
+  svg.setAttribute('width', TOT_W);
+  svg.setAttribute('height', TOT_H);
+  svg.innerHTML = '';
+
+  placeCard(wrap, 'fin', bk.fin, X_FIN, Y_FIN);
+  placeCard(wrap, 'df',  bk.df,  X_DF,  Y_DF);
+  placeCard(wrap, 'qf1', bk.qf1, X_QF1, Y_QF);
+  placeCard(wrap, 'qf2', bk.qf2, X_QF2, Y_QF);
+
+  // Cartes qualifiés
+  placeQCard(wrap, 'q1', bk.q1, X_Q1, Y_Q, '1er Poule A');
+  placeQCard(wrap, 'q2', bk.q2, X_Q2, Y_Q, '1er Poule B');
+  placeQCard(wrap, 'q3', bk.q3, X_Q3, Y_Q, '1er Poule C');
+  placeQCard(wrap, 'q4', bk.q4, X_Q4, Y_Q, '1er Poule D');
+  placeQCard(wrap, 'q5', bk.q5, X_Q5, Y_Q, '1er Poule E');
+
+  drawLines(svg);
+  buildRBar();
+}
+
+function placeQCard(wrap, id, q, x, y, placeholder) {
+  const card = document.createElement('div');
+  card.className = 'mc qcard'; card.id = 'mc-'+id;
+  card.style.cssText = `left:${x}px;top:${y}px;width:${Q_W}px;`;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'mclbl';
+  lbl.textContent = placeholder.split(' ').slice(0,2).join(' ');
+  card.appendChild(lbl);
+
+  const row = document.createElement('div');
+  row.className = 'mr';
+  const nameInp = document.createElement('input');
+  nameInp.className = 'mn';
+  nameInp.placeholder = placeholder;
+  nameInp.value = q.name;
+  nameInp.addEventListener('input', e => { q.name = e.target.value; renderBracket(); });
+  row.appendChild(nameInp);
+  card.appendChild(row);
+  wrap.appendChild(card);
+}
+
+function placeCard(wrap, id, m, x, y) {
+  const w = w2(m.f1, m.f2);
+  const card = document.createElement('div');
+  card.className = 'mc'; card.id = 'mc-'+id;
+  card.style.cssText = `left:${x}px;top:${y}px;width:${CW}px;`;
+
+  const lbl = document.createElement('div');
+  lbl.className = 'mclbl'; lbl.textContent = m.label;
+  card.appendChild(lbl);
+
+  ['f1','f2'].forEach(side => {
+    const isWin = w === side;
+    const isByeRow = id === 'df' && side === 'f2';
+    const row = document.createElement('div');
+    row.className = 'mr' + (isWin ? ' win' : '');
+
+    if (isByeRow) {
+      const badge = document.createElement('span');
+      badge.className = 'byetag';
+      badge.style.cssText = 'font-family:"Bebas Neue",sans-serif;font-size:.66rem;letter-spacing:2px;color:#7a5500;background:#fef3cd;padding:2px 5px;border:1px solid var(--gold);border-radius:2px;flex-shrink:0;margin-right:4px;';
+      badge.textContent = 'BYE';
+      const nameInp = document.createElement('input');
+      nameInp.className = 'mn';
+      nameInp.placeholder = '5e Qualifie';
+      nameInp.value = m[side].name;
+      nameInp.addEventListener('input', e => {
+        bk.bye.name = e.target.value;
+        bk[id][side].name = e.target.value;
+        renderBracket();
+      });
+      const spin = makeBrSpin(
+        () => bk[id][side].sc,
+        val => { bk[id][side].sc = val; renderBracket(); },
+        isWin
+      );
+      row.appendChild(badge);
+      row.appendChild(nameInp);
+      row.appendChild(spin);
+    } else {
+      const nameInp = document.createElement('input');
+      nameInp.className = 'mn';
+      nameInp.placeholder = 'Qualifie';
+      nameInp.value = m[side].name;
+      nameInp.addEventListener('input', e => {
+        bk[id][side].name = e.target.value; renderBracket();
+      });
+      const spin = makeBrSpin(
+        () => bk[id][side].sc,
+        val => { bk[id][side].sc = val; renderBracket(); },
+        isWin
+      );
+      row.appendChild(nameInp);
+      row.appendChild(spin);
+    }
+
+    card.appendChild(row);
+  });
+
+  wrap.appendChild(card);
+}
+
+function drawLines(svg) {
+  function L(x1,y1,x2,y2,col,sw) {
+    const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2); l.setAttribute('y2',y2);
+    l.setAttribute('stroke', col||'#8a92aa');
+    l.setAttribute('stroke-width', sw||2);
+    svg.appendChild(l);
+  }
+
+  const LBL = 27, RH = 42.5, QLBL = 27, QRH = 42.5;
+
+  // ── QF1 ──────────────────────────────────────────────
+  const qf1TopY = Y_QF;
+  const qf1MidX = X_QF1 + CW / 2;
+
+  // ── QF2 ──────────────────────────────────────────────
+  const qf2TopY = Y_QF;
+  const qf2MidX = X_QF2 + CW / 2;
+
+  // ── DF ───────────────────────────────────────────────
+  const dfTopY  = Y_DF;
+  const dfLX    = X_DF;
+  const dfMidX  = X_DF + CW / 2;
+  const dfr1y   = Y_DF + LBL + RH * 0.5;
+  const dfr2y   = Y_DF + LBL + RH * 1.5;
+
+  // ── FINALE ───────────────────────────────────────────
+  const finr1y  = Y_FIN + LBL + RH * 0.5;
+  const finr2y  = Y_FIN + LBL + RH * 1.5;
+  const finLX   = X_FIN;
+  const finRX   = X_FIN + CW;
+
+  // ── Qualifiés ─────────────────────────────────────────
+  const q1TopY  = Y_Q;
+  const q1MidX  = X_Q1 + Q_W / 2;
+  const q2TopY  = Y_Q;
+  const q2MidX  = X_Q2 + Q_W / 2;
+  const q3TopY  = Y_Q;
+  const q3MidX  = X_Q3 + Q_W / 2;
+  const q4TopY  = Y_Q;
+  const q4MidX  = X_Q4 + Q_W / 2;
+  const q5MidX  = X_Q5 + Q_W / 2;
+
+  // ── Q1 → QF1 f1 (gauche de QF1) ──────────────────────
+  const qf1f1y = Y_QF + LBL + RH * 0.5;
+  L(q1MidX, q1TopY, q1MidX, qf1f1y);
+  L(q1MidX, qf1f1y, X_QF1, qf1f1y);
+
+  // ── Q2 → QF1 f2 (droite de QF1) ─────────────────────
+  const qf1f2y = Y_QF + LBL + RH * 1.5;
+  L(q2MidX, q2TopY, q2MidX, qf1f2y);
+  L(q2MidX, qf1f2y, X_QF1 + CW, qf1f2y);
+
+  // ── Q3 → QF2 f1 (gauche de QF2) ─────────────────────
+  const qf2f1y = Y_QF + LBL + RH * 0.5;
+  L(q3MidX, q3TopY, q3MidX, qf2f1y);
+  L(q3MidX, qf2f1y, X_QF2, qf2f1y);
+
+  // ── Q4 → QF2 f2 (droite de QF2) ─────────────────────
+  const qf2f2y = Y_QF + LBL + RH * 1.5;
+  L(q4MidX, q4TopY, q4MidX, qf2f2y);
+  L(q4MidX, qf2f2y, X_QF2 + CW, qf2f2y);
+
+  // ── Q5 → DF f2 : bulle la plus à droite vers DF ──────
+  const dfr2y_val = Y_DF + LBL + RH * 1.5;
+  L(q5MidX, Y_Q, q5MidX, dfr2y_val);
+  L(q5MidX, dfr2y_val, X_DF + CW, dfr2y_val);
+
+  // ── QF1 → FIN f1 : trait depuis le haut, passe entre QF et DF ──
+  L(qf1MidX, qf1TopY, qf1MidX, finr1y);
+  L(qf1MidX, finr1y,  finLX,   finr1y);
+
+  // ── QF2 → DF f1 : trait depuis le haut de QF2 ────────────────
+  L(qf2MidX, qf2TopY, qf2MidX, dfr1y);
+  L(qf2MidX, dfr1y,   dfLX,    dfr1y);
+
+  // ── DF → FIN f2 : sort par le haut, rejoint FINALE ───────────
+  L(dfMidX, dfTopY, dfMidX, finr2y);
+  L(dfMidX, finr2y, finRX,  finr2y);
+}
+
+function buildRBar() {
+  document.getElementById('rbar').innerHTML = `
+    <div class="rb">Qualifiés</div>
+    <div class="rb">Quart de Finale 1</div>
+    <div class="rb rsf">Quart de Finale 2 · Demi-Finale</div>
+    <div class="rb rfin">Finale</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════
+function showOv(m){document.getElementById('ovm').textContent=m;document.getElementById('ov').classList.add('on');}
+function hideOv(){document.getElementById('ov').classList.remove('on');}
+
+async function cap() {
+  const bscroll  = document.querySelector('.bscroll');
+  const champBox = document.querySelector('.champ-box');
+
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:fixed;left:-9999px;top:0;background:#ffffff;padding:32px;width:' +
+    (bscroll.scrollWidth + 64) + 'px;';
+
+  const bClone = bscroll.cloneNode(true);
+  bClone.style.overflow = 'visible';
+  bClone.style.border = 'none';
+  bClone.style.borderRadius = '0';
+  tmp.appendChild(bClone);
+  tmp.appendChild(champBox.cloneNode(true));
+
+  document.body.appendChild(tmp);
+  const canvas = await html2canvas(tmp, {
+    backgroundColor:'#ffffff', scale:2, useCORS:true, logging:false,
+  });
+  document.body.removeChild(tmp);
+  return canvas;
+}
+async function xpng(){
+  showOv('Capture en cours...');
+  try{const c=await cap();const a=document.createElement('a');a.download='tournoi.png';a.href=c.toDataURL('image/png');a.click();}
+  catch(e){console.error(e);}finally{hideOv();}
+}
+async function xpdf(){
+  showOv('Generation du PDF...');
+  try{
+    const{jsPDF}=window.jspdf;const c=await cap();
+    const iw=c.width,ih=c.height;
+    const pdf=new jsPDF({orientation:iw>ih?'landscape':'portrait',unit:'px',format:[iw/2,ih/2]});
+    pdf.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,iw/2,ih/2);
+    pdf.save('tournoi.pdf');
+  }catch(e){console.error(e);}finally{hideOv();}
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+renderPoules();
+syncNames();
+renderBracket();
+</script>
+</body>
+</html>
